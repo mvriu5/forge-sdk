@@ -1,5 +1,8 @@
 import type {ComponentType} from "react"
 
+export type CustomIntegration = string
+export type TypedIntegration = "github" |"google" | "linear" | "atlassian" | CustomIntegration
+
 export interface BaseWidget {
     id: string
     userId: string
@@ -14,13 +17,10 @@ export interface BaseWidget {
     updatedAt: Date
 }
 
-export type WidgetType = string
-
 export interface WidgetPreview {
-    widgetType: WidgetType
-    previewImage: string
     title: string
     description: string
+    image: string
     tags: string[]
     sizes: {
         desktop: { width: number; height: number }
@@ -29,32 +29,38 @@ export interface WidgetPreview {
     }
 }
 
-/**
- * Props, die dein Dashboard an das Runtime-Component übergibt
- */
-export interface WidgetRuntimeOuterProps<W extends BaseWidget = BaseWidget> {
+export interface WidgetRuntimeProps<W extends BaseWidget = BaseWidget> {
     widget: W
     editMode: boolean
+    isDragging?: boolean
+    onWidgetUpdate?: (widget: W) => Promise<void> | void
+    onWidgetDelete?: (id: string) => void
+}
+
+export interface WidgetPropsBase<W extends BaseWidget = BaseWidget> {
+    widget: W
+    updateWidget?: (updater: W | ((prev: W) => W)) => Promise<void>
+    editMode: boolean
+    integration?: TypedIntegration
     isDragging?: boolean
     onWidgetDelete?: (id: string) => void
 }
 
-/**
- * Props, die dein eigentlicher Widget-Content bekommt
- */
-export interface WidgetRuntimeInnerProps<Config, W extends BaseWidget = BaseWidget> {
-    widget: W
+export interface WidgetPropsWithConfig<Config, W extends BaseWidget = BaseWidget>
+    extends WidgetPropsBase<W> {
     config: Config
     updateConfig: (updater: Config | ((prev: Config) => Config)) => Promise<void>
-    editMode: boolean
-    isDragging?: boolean
-    onWidgetDelete?: (id: string) => void
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export interface WidgetDefinition<Config = any, W extends BaseWidget = BaseWidget> {
-    type: WidgetType
+export type WidgetProps<Config = undefined, W extends BaseWidget = BaseWidget> =
+    [Config] extends [undefined]
+        ? WidgetPropsBase<W>
+        : WidgetPropsWithConfig<Config, W>
+
+export interface WidgetDefinition<Config = unknown, W extends BaseWidget = BaseWidget> {
+    name: string
+    component: ComponentType<WidgetRuntimeProps<W>>
     preview: WidgetPreview
-    defaultConfig: Config
-    Component: ComponentType<WidgetRuntimeInnerProps<Config, W>>
+    defaultConfig?: Config
+    integration?: TypedIntegration
 }

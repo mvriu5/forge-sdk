@@ -1,69 +1,94 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import React, { useState } from "react"
-import type {
+import React, {useCallback, useMemo, useState} from "react"
+import {
     BaseWidget,
     WidgetDefinition,
     WidgetPreview,
-    WidgetRuntimeInnerProps,
-    WidgetRuntimeOuterProps,
-    WidgetType,
+    WidgetRuntimeProps,
+    TypedIntegration,
+    WidgetPropsWithConfig,
+    WidgetPropsBase
 } from "./types"
 
-/**
- * Sehr generische createWidget-Factory:
- * - kümmert sich um lokale Config-State
- * - ruft bei updateConfig einen Callback, wenn du willst (z.B. Save to DB)
- *
- * Die eigentliche DB-Integration machst du im Dashboard-Projekt,
- * indem du den Component umschließt oder updateConfig überschreibst.
- */
-export function createWidget<Config, W extends BaseWidget = BaseWidget>(opts: {
-    type: WidgetType
-    preview: Omit<WidgetPreview, "widgetType">
-    defaultConfig: Config
-    Content: React.FC<WidgetRuntimeInnerProps<Config, W>>
-    onConfigChange?: (widget: W, config: Config) => Promise<void> | void
-}): WidgetDefinition<Config, W> {
-    const { type, preview, defaultConfig, Content, onConfigChange } = opts
 
-    const RuntimeComponent: React.FC<WidgetRuntimeOuterProps<W>> = (props) => {
-        const { widget, editMode, isDragging, onWidgetDelete } = props
+type WidgetComponentWithConfig<Config, W extends BaseWidget = BaseWidget> = React.FC<WidgetPropsWithConfig<Config, W>>
 
-        const initialConfig = (widget.config ?? defaultConfig) as Config
-        const [config, setConfig] = useState<Config>(initialConfig)
+type WidgetComponentNoConfig<W extends BaseWidget = BaseWidget> = React.FC<WidgetPropsBase<W>>
 
-        const updateConfig = async (updater: Config | ((prev: Config) => Config)) => {
-            const nextConfig = typeof updater === "function"
-                ? (updater as (prev: Config) => Config)(config)
-                : updater
+type InferConfig<C> =
+    C extends WidgetComponentWithConfig<infer Config, any>
+        ? Config
+        : undefined
 
+type InferWidget<C> =
+    C extends WidgetComponentWithConfig<any, infer W>
+        ? W
+        : C extends WidgetComponentNoConfig<infer W2>
+            ? W2
+            : BaseWidget
+
+export function defineWidget<C extends React.ComponentType<any>>(opts: {
+    name: string
+    component: C
+    preview: Omit<WidgetPreview, "title">
+    defaultConfig?: InferConfig<C>
+    integration?: TypedIntegration
+    onConfigChange?: InferConfig<C> extends undefined ? never : (widget: InferWidget<C>, config: InferConfig<C>) => Promise<void> | void
+}): WidgetDefinition<InferConfig<C>, InferWidget<C>> {
+    type Config = InferConfig<C>
+    type W = InferWidget<C>
+
+    const { name, component, preview, defaultConfig, integration, onConfigChange } = opts
+
+    const RunnableWidget: React.FC<WidgetRuntimeProps<W>> = (props) => {
+        const { widget, editMode, isDragging, onWidgetUpdate, onWidgetDelete } = props
+        const [config, setConfig] = useState<Config | undefined>((widget.config ?? defaultConfig) as Config | undefined)
+
+        const updateConfig = useCallback(async (updater: Config | ((prev: Config) => Config)) => {
+            if (!onConfigChange) return
+
+            const nextConfig = typeof updater === "function" ? (updater as (prev: Config) => Config)(config as Config) : updater
             setConfig(nextConfig)
+            await onConfigChange(widget as W, nextConfig)
 
-            if (onConfigChange) {
-                await onConfigChange(widget, nextConfig)
+        }, [config, widget])
+
+        const updateWidget = useCallback(async (updater: W | ((prev: W) => W)) => {
+            if (!onWidgetUpdate) return
+
+            const nextWidget = typeof updater === "function" ? (updater as (prev: W) => W)(widget as W) : updater
+            await onWidgetUpdate(nextWidget)
+        }, [widget, onWidgetUpdate])
+
+        const TypedComponent = component as React.ComponentType<any>
+
+        const componentProps = useMemo(() => {
+            return {
+                widget: widget as W,
+                editMode,
+                isDragging,
+                updateWidget,
+                onWidgetDelete,
+                ...(typeof config !== "undefined" && {
+                    config: config as Config,
+                    updateConfig,
+                }),
             }
-        }
+        }, [config, editMode, isDragging, onWidgetDelete, updateConfig, updateWidget, widget])
 
-        return (
-            <Content
-                widget={widget}
-                config={config}
-                updateConfig={updateConfig}
-                editMode={editMode}
-                isDragging={isDragging}
-                onWidgetDelete={onWidgetDelete}
-            />
-        )
+        return useMemo(() => (React.createElement(TypedComponent, componentProps as any)), [TypedComponent, componentProps])
     }
 
     return {
-        type,
+        name,
+        integration,
         preview: {
             ...preview,
-            widgetType: type,
+            title: name,
         },
         defaultConfig,
-        Component: RuntimeComponent,
+        component: RunnableWidget,
     }
 }
