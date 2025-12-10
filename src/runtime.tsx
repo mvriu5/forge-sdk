@@ -42,7 +42,7 @@ export function defineWidget<C extends React.ComponentType<any>>(opts: {
 
     const { name, component, preview, defaultConfig, integration, onConfigChange } = opts
 
-    const RunnableWidget: React.FC<WidgetRuntimeProps<W>> = (props) => {
+    const RunnableWidget: React.FC<WidgetRuntimeProps<W, Config>> = (props) => {
         const { widget, editMode, isDragging, onWidgetUpdate, onWidgetDelete } = props
         const [config, setConfig] = useState<Config | undefined>((widget.config ?? defaultConfig) as Config | undefined)
 
@@ -89,6 +89,6 @@ export function defineWidget<C extends React.ComponentType<any>>(opts: {
             title: name,
         },
         defaultConfig,
-        component: RunnableWidget,
+        Component: RunnableWidget,
     }
 }

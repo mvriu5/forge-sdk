@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import type {ComponentType} from "react"
 
-export type CustomIntegration = string
-export type TypedIntegration = "github" |"google" | "linear" | "atlassian" | CustomIntegration
+export type TypedIntegration = "github" |"google" | "linear" | "atlassian" | string
 
 export interface BaseWidget {
     id: string
@@ -29,12 +30,14 @@ export interface WidgetPreview {
     }
 }
 
-export interface WidgetRuntimeProps<W extends BaseWidget = BaseWidget> {
+export interface WidgetRuntimeProps<W extends BaseWidget = BaseWidget, Config = any> {
     widget: W
     editMode: boolean
     isDragging?: boolean
     onWidgetUpdate?: (widget: W) => Promise<void> | void
     onWidgetDelete?: (id: string) => void
+    config?: Config
+    updateConfig?: (updater: Config | ((prev: Config) => Config)) => Promise<void>
 }
 
 export interface WidgetPropsBase<W extends BaseWidget = BaseWidget> {
@@ -46,8 +49,7 @@ export interface WidgetPropsBase<W extends BaseWidget = BaseWidget> {
     onWidgetDelete?: (id: string) => void
 }
 
-export interface WidgetPropsWithConfig<Config, W extends BaseWidget = BaseWidget>
-    extends WidgetPropsBase<W> {
+export interface WidgetPropsWithConfig<Config, W extends BaseWidget = BaseWidget> extends WidgetPropsBase<W> {
     config: Config
     updateConfig: (updater: Config | ((prev: Config) => Config)) => Promise<void>
 }
@@ -57,9 +59,9 @@ export type WidgetProps<Config = undefined, W extends BaseWidget = BaseWidget> =
         ? WidgetPropsBase<W>
         : WidgetPropsWithConfig<Config, W>
 
-export interface WidgetDefinition<Config = unknown, W extends BaseWidget = BaseWidget> {
+export interface WidgetDefinition<Config = any, W extends BaseWidget = BaseWidget> {
     name: string
-    component: ComponentType<WidgetRuntimeProps<W>>
+    Component: ComponentType<WidgetRuntimeProps<W, Config>>
     preview: WidgetPreview
     defaultConfig?: Config
     integration?: TypedIntegration
