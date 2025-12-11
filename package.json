@@ -1,7 +1,8 @@
 {
-  "name": "@forge/sdk",
-  "private": true,
-  "version": "0.0.1",
+  "name": "@tryforgeio/sdk",
+  "private": false,
+  "version": "0.1.1",
+  "license":"MIT",
   "description": "Forge SDK for creating widgets",
   "type": "module",
   "main": "dist/forge-sdk.cjs",
