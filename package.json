@@ -1,13 +1,24 @@
 {
   "name": "@tryforgeio/sdk",
   "private": false,
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license":"MIT",
   "description": "Forge SDK for creating widgets",
   "type": "module",
   "main": "dist/forge-sdk.cjs",
   "module": "dist/forge-sdk.es.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/forge-sdk.es.js",
+      "require": "./dist/forge-sdk.cjs",
+      "default": "./dist/forge-sdk.es.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "sideEffects": false,
   "scripts": {
     "build": "vite build"

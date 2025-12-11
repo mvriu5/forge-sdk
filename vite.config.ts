@@ -14,9 +14,9 @@ export default defineConfig({
     build: {
         lib: {
             entry: path.resolve(__dirname, "src/index.ts"),
-            name: "WidgetSDK",
+            name: "ForgeSDK",
             fileName: (format) =>
-                format === "es" ? "widget-sdk.es.js" : "widget-sdk.cjs",
+                format === "es" ? "forge-sdk.es.js" : "forge-sdk.cjs",
             formats: ["es", "cjs"],
         },
         rollupOptions: {
