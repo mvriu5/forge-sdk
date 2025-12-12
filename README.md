@@ -16,12 +16,10 @@ import { defineWidget } from "@forge/sdk" // adjust path or alias as needed
 
 export const WeatherWidget = defineWidget({
   name: "Weather",
-  component: WeatherWidget
-  preview: {
-    description: "Current weather",
-    image: "/previews/weather.png",
-    tags: ["info", "weather"]
-  },
+  component: WeatherWidget,
+  description: "Current weather",
+  image: "/previews/weather.png",
+  tags: ["info", "weather"],
   sizes: {
     desktop: { width: 2, height: 1 },
     tablet: { width: 1, height: 1 },

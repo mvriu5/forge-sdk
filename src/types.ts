@@ -18,16 +18,10 @@ export interface BaseWidget {
     updatedAt: Date
 }
 
-export interface WidgetPreview {
-    title: string
-    description: string
-    image: string
-    tags: string[]
-    sizes: {
-        desktop: { width: number; height: number }
-        tablet: { width: number; height: number }
-        mobile: { width: number; height: number }
-    }
+export interface WidgetSizes {
+    desktop: { width: number; height: number }
+    tablet: { width: number; height: number }
+    mobile: { width: number; height: number }
 }
 
 export interface WidgetRuntimeProps<W extends BaseWidget = BaseWidget, Config = any> {
@@ -62,7 +56,10 @@ export type WidgetProps<Config = undefined, W extends BaseWidget = BaseWidget> =
 export interface WidgetDefinition<Config = any, W extends BaseWidget = BaseWidget> {
     name: string
     Component: ComponentType<WidgetRuntimeProps<W, Config>>
-    preview: WidgetPreview
+    description: string
+    image: string
+    tags: string[]
+    sizes: WidgetSizes
     defaultConfig?: Config
     integration?: TypedIntegration
 }

@@ -5,11 +5,10 @@ import React, {useCallback, useMemo, useState} from "react"
 import {
     BaseWidget,
     WidgetDefinition,
-    WidgetPreview,
     WidgetRuntimeProps,
     TypedIntegration,
     WidgetPropsWithConfig,
-    WidgetPropsBase
+    WidgetPropsBase, WidgetSizes
 } from "./types"
 
 
@@ -32,7 +31,10 @@ type InferWidget<C> =
 export function defineWidget<C extends React.ComponentType<any>>(opts: {
     name: string
     component: C
-    preview: Omit<WidgetPreview, "title">
+    description: string
+    image: string
+    tags: string[]
+    sizes: WidgetSizes
     defaultConfig?: InferConfig<C>
     integration?: TypedIntegration
     onConfigChange?: InferConfig<C> extends undefined ? never : (widget: InferWidget<C>, config: InferConfig<C>) => Promise<void> | void
@@ -40,7 +42,7 @@ export function defineWidget<C extends React.ComponentType<any>>(opts: {
     type Config = InferConfig<C>
     type W = InferWidget<C>
 
-    const { name, component, preview, defaultConfig, integration, onConfigChange } = opts
+    const { name, component, description, image, tags, sizes, defaultConfig, integration, onConfigChange } = opts
 
     const RunnableWidget: React.FC<WidgetRuntimeProps<W, Config>> = (props) => {
         const { widget, editMode, isDragging, onWidgetUpdate, onWidgetDelete } = props
@@ -84,10 +86,10 @@ export function defineWidget<C extends React.ComponentType<any>>(opts: {
     return {
         name,
         integration,
-        preview: {
-            ...preview,
-            title: name,
-        },
+        description,
+        image,
+        tags,
+        sizes,
         defaultConfig,
         Component: RunnableWidget,
     }
