@@ -49,12 +49,12 @@ export function defineWidget<C extends React.ComponentType<any>>(opts: {
         const [config, setConfig] = useState<Config | undefined>((widget.config ?? defaultConfig) as Config | undefined)
 
         const updateConfig = useCallback(async (updater: Config | ((prev: Config) => Config)) => {
-            if (!onConfigChange) return
-
-            const nextConfig = typeof updater === "function" ? (updater as (prev: Config) => Config)(config as Config) : updater
+            const nextConfig = typeof updater === "function"
+                ? (updater as (prev: Config) => Config)(config as Config)
+                : updater
+            
             setConfig(nextConfig)
-            await onConfigChange(widget as W, nextConfig)
-
+            if (onConfigChange) await onConfigChange(widget as W, nextConfig)
         }, [config, widget])
 
         const updateWidget = useCallback(async (updater: W | ((prev: W) => W)) => {
