@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import React, {useCallback, useMemo, useState} from "react"
+import React, {useCallback, useEffect, useMemo, useState} from "react"
 import {
     BaseWidget,
     WidgetDefinition,
@@ -46,22 +46,19 @@ export function defineWidget<C extends React.ComponentType<any>>(opts: {
 
     const RunnableWidget: React.FC<WidgetRuntimeProps<W, Config>> = (props) => {
         const { widget, editMode, isDragging, onWidgetUpdate, onWidgetDelete } = props
-        const [config, setConfig] = useState<Config | undefined>((widget.config ?? defaultConfig) as Config | undefined)
+        const resolvedConfig = (widget.config ?? defaultConfig) as Config | undefined
 
         const updateConfig = useCallback(async (updater: Config | ((prev: Config) => Config)) => {
-            const nextConfig = typeof updater === "function"
-                ? (updater as (prev: Config) => Config)(config as Config)
-                : updater
-            
-            setConfig(nextConfig)
-            if (onConfigChange) await onConfigChange(widget as W, nextConfig)
-        }, [config, widget])
+            const prevConfig = (widget.config ?? defaultConfig) as Config
+            const nextConfig = typeof updater === "function" ? (updater as (p: Config) => Config)(prevConfig) : updater
+
+            await onWidgetUpdate?.({ ...(widget as any), config: nextConfig } as W)
+            await onConfigChange?.(widget as W, nextConfig)
+        }, [widget, onWidgetUpdate])
 
         const updateWidget = useCallback(async (updater: W | ((prev: W) => W)) => {
-            if (!onWidgetUpdate) return
-
             const nextWidget = typeof updater === "function" ? (updater as (prev: W) => W)(widget as W) : updater
-            await onWidgetUpdate(nextWidget)
+            await onWidgetUpdate?.(nextWidget)
         }, [widget, onWidgetUpdate])
 
         const TypedComponent = component as React.ComponentType<any>
@@ -73,12 +70,12 @@ export function defineWidget<C extends React.ComponentType<any>>(opts: {
                 isDragging,
                 updateWidget,
                 onWidgetDelete,
-                ...(typeof config !== "undefined" && {
-                    config: config as Config,
+                ...(typeof resolvedConfig !== "undefined" && {
+                    config: resolvedConfig as Config,
                     updateConfig,
                 }),
             }
-        }, [config, editMode, isDragging, onWidgetDelete, updateConfig, updateWidget, widget])
+        }, [resolvedConfig, editMode, isDragging, onWidgetDelete, updateConfig, updateWidget, widget])
 
         return useMemo(() => (React.createElement(TypedComponent, componentProps as any)), [TypedComponent, componentProps])
     }
