@@ -45,16 +45,18 @@ export function defineWidget<C extends React.ComponentType<any>>(opts: {
     const { name, component, description, image, tags, sizes, defaultConfig, integration, onConfigChange } = opts
 
     const RunnableWidget: React.FC<WidgetRuntimeProps<W, Config>> = (props) => {
-        const { widget, editMode, isDragging, onWidgetUpdate, onWidgetDelete } = props
-        const resolvedConfig = (widget.config ?? defaultConfig) as Config | undefined
+        const { widget, editMode, isDragging, onWidgetUpdate, onWidgetDelete, config: providedConfig, updateConfig: providedUpdateConfig } = props
+        const resolvedConfig = (providedConfig ?? widget.config ?? defaultConfig) as Config | undefined
 
         const updateConfig = useCallback(async (updater: Config | ((prev: Config) => Config)) => {
-            const prevConfig = (widget.config ?? defaultConfig) as Config
+            const prevConfig = (resolvedConfig ?? defaultConfig) as Config
             const nextConfig = typeof updater === "function" ? (updater as (p: Config) => Config)(prevConfig) : updater
 
-            await onWidgetUpdate?.({ ...(widget as any), config: nextConfig } as W)
+            if (providedUpdateConfig) await providedUpdateConfig(nextConfig)
+            else await onWidgetUpdate?.({ ...(widget as any), config: nextConfig } as W)
+
             await onConfigChange?.(widget as W, nextConfig)
-        }, [widget, onWidgetUpdate])
+        }, [resolvedConfig, widget, onWidgetUpdate, providedUpdateConfig])
 
         const updateWidget = useCallback(async (updater: W | ((prev: W) => W)) => {
             const nextWidget = typeof updater === "function" ? (updater as (prev: W) => W)(widget as W) : updater
