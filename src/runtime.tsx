@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import React, {useCallback, useEffect, useMemo, useState} from "react"
+import React, {useCallback, useMemo, useState} from "react"
 import {
     BaseWidget,
     WidgetDefinition,
@@ -46,17 +46,33 @@ export function defineWidget<C extends React.ComponentType<any>>(opts: {
 
     const RunnableWidget: React.FC<WidgetRuntimeProps<W, Config>> = (props) => {
         const { widget, editMode, isDragging, onWidgetUpdate, onWidgetDelete, config: providedConfig, updateConfig: providedUpdateConfig } = props
-        const resolvedConfig = (providedConfig ?? widget.config ?? defaultConfig) as Config | undefined
+        const [resolvedConfig, setResolvedConfig] = useState<Config | undefined>(() => (providedConfig ?? widget.config ?? defaultConfig) as Config | undefined)
 
         const updateConfig = useCallback(async (updater: Config | ((prev: Config) => Config)) => {
-            const prevConfig = (resolvedConfig ?? defaultConfig) as Config
-            const nextConfig = typeof updater === "function" ? (updater as (p: Config) => Config)(prevConfig) : updater
+            let nextConfig: Config | undefined
+            setResolvedConfig(prev => {
+                const prevConfig = (prev ?? defaultConfig) as Config
+                nextConfig = typeof updater === "function" ? (updater as (p: Config) => Config)(prevConfig) : updater
+                return nextConfig
+            })
 
-            if (providedUpdateConfig) await providedUpdateConfig(nextConfig)
-            else await onWidgetUpdate?.({ ...(widget as any), config: nextConfig } as W)
+            if (typeof nextConfig === "undefined") return
 
-            await onConfigChange?.(widget as W, nextConfig)
-        }, [resolvedConfig, widget, onWidgetUpdate, providedUpdateConfig])
+            try {
+                if (providedUpdateConfig) {
+                    await providedUpdateConfig(nextConfig)
+                } else if (onWidgetUpdate) {
+                    await onWidgetUpdate({ ...(widget as any), config: nextConfig } as W)
+                } else {
+                    console.warn("[Forge SDK] updateConfig called but neither updateConfig nor onWidgetUpdate were provided. Changes will only live in memory.")
+                }
+
+                await onConfigChange?.(widget as W, nextConfig)
+            } catch (err) {
+                console.error("[Forge SDK] updateConfig error:", err)
+                throw err
+            }
+        }, [providedUpdateConfig, onWidgetUpdate, widget])
 
         const updateWidget = useCallback(async (updater: W | ((prev: W) => W)) => {
             const nextWidget = typeof updater === "function" ? (updater as (prev: W) => W)(widget as W) : updater
