@@ -28,7 +28,7 @@ export interface WidgetRuntimeProps<W extends BaseWidget = BaseWidget, Config = 
     widget: W
     editMode: boolean
     isDragging?: boolean
-    onWidgetUpdate?: (widget: W) => Promise<void> | void
+    onWidgetUpdate?: (widget: W) => Promise<BaseWidget>
     onWidgetDelete?: (id: string) => void
     config?: Config
     updateConfig?: (updater: Config | ((prev: Config) => Config)) => Promise<void>
